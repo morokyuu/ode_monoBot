@@ -12,12 +12,11 @@ static dJointGroupID contactgroup;
 dsFunctions fn;
 
 typedef struct{
-   dBodyID body;
-   dGeomID geom;
-   dReal l,r,m;
+  dBodyID body;
+  dGeomID geom;
+  dReal l,r,m;
 } MyObject;
-MyObject ball;
-MyObject leg;
+MyObject ball, leg;
 
 dJointID joint;
 
@@ -53,7 +52,8 @@ static void simLoop (int pause)
    // find collisions and add contact joints
    dSpaceCollide (space,0,&nearCallback);
    // step the simulation
-   dWorldQuickStep (world,0.001);
+   //dWorldQuickStep (world,0.001);
+   dWorldStep (world,0.001);
    // remove all contact joints
    dJointGroupEmpty (contactgroup);
 
@@ -63,6 +63,8 @@ static void simLoop (int pause)
 
    dsDrawCapsuleD(dBodyGetPosition(leg.body),
                   dBodyGetRotation(leg.body), leg.l, leg.r);
+
+   getchar();
 }
 
 
@@ -131,13 +133,13 @@ int main (int argc, char **argv)
 {
    dInitODE ();
    setDrawStuff();
-   
+
    // create world
    world = dWorldCreate ();
    space = dHashSpaceCreate (0);
    contactgroup = dJointGroupCreate (0);
    dWorldSetGravity (world,0,0,-0.2);
-   dCreatePlane (space,0,0,1,0);
+   ground = dCreatePlane (space,0,0,1,0);
    dWorldSetCFM (world,1e-5);
 
    makeMonoBot();
