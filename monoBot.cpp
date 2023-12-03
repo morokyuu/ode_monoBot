@@ -92,8 +92,10 @@ void makeMonoBot()
   dJointAttach(joint, ball.body,leg.body);
   dJointSetHingeAnchor(joint,x0,y0,z0-ball.r);
   dJointSetHingeAxis(joint,1,0,0);
-  dJointSetHingeParam(joint, dParamLoStop, -0.25*M_PI);
-  dJointSetHingeParam(joint, dParamHiStop,  0.25*M_PI);
+  //dJointSetHingeParam(joint, dParamLoStop, -0.25*M_PI);
+  //dJointSetHingeParam(joint, dParamHiStop,  0.25*M_PI);
+  dJointSetHingeParam(joint, dParamLoStop, -M_PI);
+  dJointSetHingeParam(joint, dParamHiStop, M_PI);
 }
 
 
@@ -127,7 +129,7 @@ int main (int argc, char **argv)
    world = dWorldCreate ();
    space = dHashSpaceCreate (0);
    contactgroup = dJointGroupCreate (0);
-   dWorldSetGravity (world,0,0.2,-9.8);
+   dWorldSetGravity (world,0,0.02,-9.8);
    ground = dCreatePlane (space,0,0,1,0);
    dWorldSetCFM (world,1e-5);
 
