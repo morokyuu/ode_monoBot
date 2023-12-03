@@ -140,12 +140,15 @@ int main (int argc, char **argv)
    dCreatePlane (space,0,0,1,0);
    dWorldSetCFM (world,1e-5);
 
+   
+
    makeMonoBot();
 
    // run simulation
    dsSimulationLoop (argc,argv,352,288,&fn);
 
    // clean up
+   dJointGroupDestroy (contactgroup);
    dSpaceDestroy (space);
    dWorldDestroy (world);
    dCloseODE();
