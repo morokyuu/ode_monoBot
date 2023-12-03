@@ -1,17 +1,6 @@
 #include <ode/ode.h>
 #include <drawstuff/drawstuff.h>
 
-
-
-
-
-
-
-
-
-
-
-
 // dynamics and collision objects
 dWorldID world;
 dSpaceID space;
@@ -138,7 +127,7 @@ int main (int argc, char **argv)
    world = dWorldCreate ();
    space = dHashSpaceCreate (0);
    contactgroup = dJointGroupCreate (0);
-   dWorldSetGravity (world,0,0,-9.8);
+   dWorldSetGravity (world,0,0.2,-9.8);
    ground = dCreatePlane (space,0,0,1,0);
    dWorldSetCFM (world,1e-5);
 
