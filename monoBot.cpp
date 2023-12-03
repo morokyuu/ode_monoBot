@@ -15,8 +15,9 @@ typedef struct{
   dReal l,r,m;
 } MyObject;
 
-MyObject body1,body2,body3,leg1,leg2;
-dJointID joint1,joint2;
+static MyObject torso, leg[2];
+static dJointID h_joint,s_joint;
+static int STEPS = 0;
 
 // this is called by dSpaceCollide when two objects in space are
 // potentially colliding.
@@ -40,112 +41,136 @@ static void nearCallback(void *data, dGeomID o1, dGeomID o2)
   }
 }
 
+// ロボットの描画
+static void drawMonoBot()
+{
+  const dReal *pos1,*R1,*pos2,*R2;
+
+  // 胴体部(球)の描画
+  dsSetColor(1.0,0.0,0.0);                       // 赤色
+  pos1 = dBodyGetPosition(torso.body);
+  R1   = dBodyGetRotation(torso.body);
+  dsDrawSphereD(pos1,R1,torso.r);
+
+  // 脚部(カプセル）の描画
+  for (int i = 0; i < 2; i++) {
+    pos2 = dBodyGetPosition(leg[i].body);
+    R2   = dBodyGetRotation(leg[i].body);
+    if (i == 0) {
+      dsSetColor(0.0,0.0,1.0);                    // 青色
+      dsDrawCylinderD(pos2,R2,leg[i].l,leg[i].r);
+    }
+    else {
+      dsSetColor(1.2,1.2,1.2);                   // 白色
+      dsDrawCapsuleD(pos2,R2,leg[i].l,leg[i].r);
+    }
+  }
+}
+
+
+// スライダの制御 プログラム2.4
+static void controlSlider(dReal target)
+{
+  static dReal kp   = 25.0;                       // 比例定数
+  static dReal fmax = 400;                        // 最大力[N]
+
+  dReal tmp  = dJointGetSliderPosition(s_joint);  // スライダの現在位置
+  dReal u    = kp * (target - tmp);               // 残差
+
+  dJointSetSliderParam(s_joint, dParamVel,  u);
+  dJointSetSliderParam(s_joint, dParamFMax, fmax);
+}
+
 
 // simulation loop
 static void simLoop(int pause)
 {
-  // find collisions and add contact joints
+  int s = 200;
+  STEPS++;
+  //slider expand
+  if ((0 <= (STEPS % s)) && ((STEPS % s) <= 10)){
+      controlSlider(0.5);
+  }
+  else{
+      controlSlider(0.0);
+  }
   dSpaceCollide(space,0,&nearCallback);
   dWorldStep(world,0.001);
-  // remove all contact joints
   dJointGroupEmpty(contactgroup);
+  drawMonoBot();
 
-  dsSetColor(1.0,0.0,0.0);
-  dsDrawCylinderD(dBodyGetPosition(body1.body),
-                dBodyGetRotation(body1.body), body1.l, body1.r);
+  dReal sj = dJointGetSliderPosition(s_joint);
+  printf("%d, %f\n",STEPS, sj);
+}
 
-  dsDrawCapsuleD(dBodyGetPosition(leg1.body),
-                 dBodyGetRotation(leg1.body), leg1.l, leg1.r);
-
-  dsDrawCylinderD(dBodyGetPosition(body2.body),
-                dBodyGetRotation(body2.body), body1.l, body2.r);
-
+//  dsSetColor(1.0,0.0,0.0);
+//  dsDrawCylinderD(dBodyGetPosition(body1.body),
+//                dBodyGetRotation(body1.body), body1.l, body1.r);
+//
+//  dsDrawCapsuleD(dBodyGetPosition(leg1.body),
+//                 dBodyGetRotation(leg1.body), leg1.l, leg1.r);
+//
+//  dsDrawCylinderD(dBodyGetPosition(body2.body),
+//                dBodyGetRotation(body2.body), body1.l, body2.r);
+//
 //  dsDrawCapsuleD(dBodyGetPosition(leg2.body),
 //                 dBodyGetRotation(leg2.body), leg2.l, leg2.r);
-}
 
 
 
 
-void makeMonoBot()
+void createMonoBot()
 {
   dMass mass;
-  dReal x0 = 0, y0 = 0, z0 = 2.5;
+  dReal x0 = 0, y0 = 0, z0 = 3.5;
 
-  //body1
-  body1.r = 0.2;
-  body1.m = 1.0;
-  body1.l = 0.3;
-  body1.body = dBodyCreate(world);
+  //torso
+  torso.r = 0.25; torso.m = 14.0;
+  torso.body = dBodyCreate(world);
   dMassSetZero(&mass);
-  dMassSetCylinderTotal(&mass,body1.m,3,body1.r,body1.l);
-  dBodySetMass(body1.body,&mass);
-  dBodySetPosition(body1.body, x0, y0, z0);
-  body1.geom = dCreateSphere(space,body1.r);
-  dGeomSetBody(body1.geom,body1.body);
+  dMassSetSphereTotal(&mass,torso.m,torso.r);
+  dBodySetMass(torso.body,&mass);
+  dBodySetPosition(torso.body, x0, y0, z0);
+  torso.geom = dCreateSphere(space,torso.r);
+  dGeomSetBody(torso.geom,torso.body);
 
   //leg
-  leg1.r = 0.025;
-  leg1.m = 0.001;
-  leg1.l = 0.2;
-  leg1.body = dBodyCreate(world);
-  dMassSetZero(&mass);
-  dMassSetCapsuleTotal(&mass,leg1.m,3,leg1.r,leg1.l);
-  dBodySetMass(leg1.body,&mass);
-  dBodySetPosition(leg1.body, x0, y0, z0-body1.r-0.5*leg1.l);
-  leg1.geom = dCreateCapsule(space,leg1.r,leg1.l);
-  dGeomSetBody(leg1.geom,leg1.body);
+  leg[0].l = 0.75;  leg[1].l = 0.75;    // 長さ
+  leg[0].r = 0.05;  leg[1].r = 0.03;    // 半径
+  for (int i = 0; i < 2; i++) {
+    leg[i].m   = 3.0;
+    leg[i].body   = dBodyCreate(world);
+    dMassSetZero(&mass);
+    dMassSetCapsuleTotal(&mass,leg[i].m,3,leg[i].r,leg[i].l);
+    dBodySetMass(leg[i].body,&mass);
+    if (i == 0)
+      dBodySetPosition(leg[i].body, x0, y0, z0-0.5*leg[0].l);
+    else
+      dBodySetPosition(leg[i].body, x0, y0, z0-0.5*leg[0].l-0.5);
+    leg[i].geom = dCreateCapsule(space,leg[i].r,leg[i].l);
+    dGeomSetBody(leg[i].geom,leg[i].body);
+  }
 
-  //body2
-  body2.r = 0.2;
-  body2.m = 1.0;
-  body2.l = 0.3;
-  body2.body = dBodyCreate(world);
-  dMassSetZero(&mass);
-  dMassSetCylinderTotal(&mass,body2.m,3,body2.r,body1.l);
-  dBodySetMass(body2.body,&mass);
-  dBodySetPosition(body2.body, x0, y0, z0-body1.r-leg1.l);
-  body2.geom = dCreateSphere(space,body2.r);
-  dGeomSetBody(body2.geom,body2.body);
+  // ヒンジジョイント
+  h_joint = dJointCreateHinge(world, 0);
+  dJointAttach(h_joint, torso.body,leg[0].body);
+  dJointSetHingeAnchor(h_joint, x0, y0, z0);
+  dJointSetHingeAxis(h_joint, 1, 0, 0);
 
-  //leg
-  leg2.r = 0.025;
-  leg2.m = 0.001;
-  leg2.l = 0.2;
-  leg2.body = dBodyCreate(world);
-  dMassSetZero(&mass);
-  dMassSetCapsuleTotal(&mass,leg2.m,3,leg2.r,leg2.l);
-  dBodySetMass(leg2.body,&mass);
-  dBodySetPosition(leg2.body, x0, y0,
-          body1.r-0.5*leg1.l + z0-body2.r-0.5*leg2.l);
-  leg2.geom = dCreateCapsule(space,leg2.r,leg2.l);
-  dGeomSetBody(leg2.geom,leg2.body);
-
-  //joint
-  joint1 = dJointCreateHinge(world, 0);
-  dJointAttach(joint1, body1.body,leg1.body);
-  dJointSetHingeAnchor(joint1,x0,y0,z0-body1.r);
-  dJointSetHingeAxis(joint1,1,0,0);
-  dJointSetHingeParam(joint1, dParamLoStop, -0.25*M_PI);
-  dJointSetHingeParam(joint1, dParamHiStop,  0.25*M_PI);
-
-  //joint
-  joint2 = dJointCreateHinge(world, 0);
-  dJointAttach(joint2, leg1.body,body2.body);
-  dJointSetHingeAnchor(joint2,x0,y0,
-          z0 - body1.r - leg1.l);
-  dJointSetHingeAxis(joint2,1,0,0);
-  dJointSetHingeParam(joint2, dParamLoStop, -0.25*M_PI);
-  dJointSetHingeParam(joint2, dParamHiStop,  0.25*M_PI);
+  // スライダージョイント
+  s_joint = dJointCreateSlider(world, 0);
+  dJointAttach(s_joint, leg[0].body,leg[1].body);
+  dJointSetSliderAxis(s_joint, 0, 0, 1);
+  dJointSetSliderParam(s_joint, dParamLoStop, -0.25);
+  dJointSetSliderParam(s_joint, dParamHiStop,  0.25);
 }
 
-
-// start simulation - set viewpoint
 static void start()
 {
-   float xyz[3] = {4.0f,-4.0f,1.7600f};
-   float hpr[3] = {140.000f,-17.0000f,0.0000f};
+   float xyz[3] = {3.5f,0.0f,1.0f};
+   float hpr[3] = {-180.000f,0.0f,0.0f};
    dsSetViewpoint (xyz,hpr);
+   dsSetSphereQuality(3);
 }
 
 
@@ -174,7 +199,7 @@ int main (int argc, char **argv)
    ground = dCreatePlane (space,0,0,1,0);
    dWorldSetCFM (world,1e-5);
 
-   makeMonoBot();
+   createMonoBot();
 
    // run simulation
    dsSimulationLoop (argc,argv,640,480,&fn);
