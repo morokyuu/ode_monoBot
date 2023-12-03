@@ -23,7 +23,7 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
    // friction parameter
    contact.surface.mu = dInfinity;
    // bounce is the amount of "bouncyness".
-   contact.surface.bounce = 0.8;
+   contact.surface.bounce = 0.3;
    // bounce_vel is the minimum incoming velocity to cause a bounce
    contact.surface.bounce_vel = 0.1;
    // constraint force mixing parameter
@@ -58,11 +58,13 @@ static void simLoop (int pause)
    // redraw sphere at new location
    pos = dGeomGetPosition (geom);
    R = dGeomGetRotation (geom);
-   dsSetColor(1,0,0);
+   dsSetColor(1,0,1);
    //dsDrawSphereD (pos,R,dGeomSphereGetRadius (geom));
 
-   const dReal bsize[3] = {1,1,1};
-   dsDrawBoxD(pos,R,bsize);
+   //const dReal bsize[3] = {1,1,1};
+   //dsDrawBoxD(pos,R,bsize);
+
+   dsDrawCylinderD(pos,R,1,0.5);
 
 }
 
@@ -95,9 +97,11 @@ int main (int argc, char **argv)
    // create object
    body = dBodyCreate (world);
    //geom = dCreateSphere (space,0.5);
-   geom = dCreateBox(space,1,1,1);
+   //geom = dCreateBox(space,1,1,1);
+   geom = dCreateCylinder(space,0.5,1);
    //dMassSetSphere (&m,1,0.5);
-   dMassSetBox(&m,3,1,1,1);
+   //dMassSetBox(&m,3,1,1,1);
+   dMassSetCylinder(&m,3,1,0.5,1);
    dBodySetMass (body,&m);
    dGeomSetBody (geom,body);
 
